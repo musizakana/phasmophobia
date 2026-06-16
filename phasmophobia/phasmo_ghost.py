@@ -118,9 +118,11 @@ class Ghost():
             self.dots()
             return
         def short_roaming():
-            pass
+            self.game.elapsed_time += random.randint(1, 3)
+            return
         def long_roaming():
-            pass
+            self.game.elapsed_time += random.randint(3, 9)
+            return
         # バンシー、メアー、御霊の分岐
         if self._type == 'Goryo':
             weights = [1, 0]
@@ -141,6 +143,7 @@ class Ghost():
         return
 
     def dots(self):
+        self.game.elapsed_time += random.randint(1, 3)
         self.stats["dots"] += 1
         return
 
@@ -151,6 +154,7 @@ class Ghost():
         pass
 
     def favorite_room(self):
+        self.game.elapsed_time += random.randint(1, 3)
         if self._type == "Goryo" and random.randint(1, 10) == 1:
             self.dots()
             return
