@@ -8,7 +8,7 @@ class Game():
         self.activity_level = activity_level
         self.is_bloodmoon = is_bloodmoon
         self.roam_frequency = roam_frequency
-        self.erapsed_time = 0
+        self.elapsed_time = 0
         return
     
 
@@ -41,7 +41,7 @@ class Ghost():
         self._obambo_state = "calm"
         self._thaye_agecount = 0
         self.stats = Counter()
-        self.game.erapsed_time = 0
+        self.game.elapsed_time = 0
         self._awake = True
         return
     
@@ -56,8 +56,8 @@ class Ghost():
         if not self.is_awake():
             print('Ghost is NOT awake. Please try Ghost.wakeup()')
             return
-        erapsed_minute = self.game.erapsed_time // 60
-        self._obambo_state = "calm" if erapsed_minute % 4 == 1 or erapsed_minute % 4 == 2 else "aggressive"
+        elapsed_minute = self.game.elapsed_time // 60
+        self._obambo_state = "aggressive" if elapsed_minute % 4 == 1 or elapsed_minute % 4 == 2 else "calm"
         self.activity()
         self.idle()
         return
@@ -157,7 +157,7 @@ class Ghost():
         return
 
     def idle(self):
-        self.game.erapsed_time += random.randint(2, 6)
+        self.game.elapsed_time += random.randint(2, 6)
         return
     
 
@@ -170,7 +170,7 @@ def main():
         ghost = Ghost(game)
         ghost.set_type('Aswang')
         ghost.wakeup()
-        while game.erapsed_time <= 1800:
+        while game.elapsed_time <= 1800:
             ghost.main_loop()
         activate_counts.append(ghost.stats['activity'])
         dots_counts.append(ghost.stats['dots'])
