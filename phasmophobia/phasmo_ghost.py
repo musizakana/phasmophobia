@@ -2,15 +2,19 @@ import random
 from collections import Counter
 
 class Game():
-    def __init__(self, average_san=100, is_solo=True, activity_level="low", is_bloodmoon=False, roam_frequency="High"):
+    def __init__(self, average_san=100, is_solo=True, activity_level="low", is_bloodmoon=False, \
+                roam_frequency="high", event_frequency="high"):
         self.average_san = average_san
         self.is_solo = is_solo
         self.activity_level = activity_level
         self.is_bloodmoon = is_bloodmoon
         self.roam_frequency = roam_frequency
+        self.event_frequency = event_frequency
         self.elapsed_time = 0
         return
-    
+    def san_decrease(self, san_diff):
+        self.average_san = max(0, self.average_san - san_diff)
+        return self.average_san
 
 class Ghost():
     def __init__(self, game):
@@ -85,7 +89,7 @@ class Ghost():
         activity_threshold -= 15 if self.game.is_bloodmoon else 0
         if self._type == "Shade":
             activity_threshold = int(activity_threshold * 1.5)
-        if random.randint(1, 100) <= 50 and activity_value <= random.randint(0, activity_threshold - 1):
+        if random.randint(1, 100) <= 50 and activity_value >= random.randint(0, activity_threshold - 1):
             # success
             # random.choices()はリストを返すので[0]で中身を取る
             # weightsで指定すると相対重みで指定する、累積重みで指定したいならcum_weightsに渡す
@@ -148,7 +152,82 @@ class Ghost():
         return
 
     def ability(self):
-        pass
+        self.stats['ability'] += 1
+        def rand_gen():
+            r = random.randint(0, 11) if self._type != "Thaye" else \
+                int(random.uniform(0.0, 12.0)*(2 - 1.5 * self._thaye_agecount / 10))
+            return r
+        rand = rand_gen()
+        # 難易度による超常現象リロール
+        if self.game.event_frequency == "low" and rand >= 7:
+            rand = rand_gen()
+        elif self.game.event_frequency == "high" and rand <= 6:
+            rand = rand_gen()
+        # ブラッドムーンによるリロール、難易度とは別枠
+        if self.game.is_bloodmoon and rand <= 6:
+            rand = rand_gen()
+        # アビリティ判定
+        def fuse_box():
+            self.stats['fuse_box'] += 1
+            return
+        def proper_ability():
+            self.stats['proper_ability'] += 1
+            # ソロの場合のみ
+            if self._type == "Yurei":
+                self.game.san_decrease(15)
+            if self._type == "Jinn":
+                self.game.san_decrease(25)
+            return
+        def ghost_event():
+            # 正気度減少周りはソロのみ正しく計算できている
+            self.stats['ghost_event'] += 1
+            def singing():
+                self.stats['singing'] += 1
+                return
+            def standing():
+                self.stats['standing'] += 1
+                return
+            def light_breaking():
+                self.stats['light_breaking'] += 1
+                return
+            def red_light():
+                self.stats['red_light'] += 1
+                return
+            def chasing():
+                self.stats['chasing'] += 1
+                san_decrease = 10 if self._type != "Oni" else 20
+                self.game.san_decrease(san_decrease)
+                return
+            def mist_form():
+                self.stats['mist_form'] += 1
+                self.game.san_decrease(10)
+                return
+            def appear():
+                self.stats['appear'] += 1
+                return
+            # [singing, standing, light_breaking, red_light, chasing, mist_form, appear]
+            standard = [3, 1, 1, 1, 3, 3, 3]
+            weights = {
+                'Banshee': [21, 2, 2, 2, 6, 6, 6],
+                'Kormos': [3, 1, 1, 1, 0, 0, 3],
+                'Mare': [9, 2, 5, 2, 9, 9, 9],
+                'Oni': [3, 1, 1, 1, 6, 0, 3],
+                'Shade': [0, 1, 1, 1, 3, 9, 0]
+            }.get(self._type, standard)
+            random.choices(
+                [singing, standing, light_breaking, red_light, chasing, mist_form, appear],
+                weights=weights
+            )[0]()
+            return
+        if rand == 0:
+            fuse_box()
+        elif 1 <= rand and rand <= 4:
+            proper_ability()
+        elif rand == 5 and self._type == "Hantu":
+            fuse_box()
+        else:
+            ghost_event()
+        return
 
     def interaction(self):
         pass
@@ -167,24 +246,34 @@ class Ghost():
 
 def main():
     activate_counts = []
-    dots_counts = []
+    average_san_counts = []
+    ability_counts = []
+    ghost_event_counts = []
     N = 200
     for _ in range(N):
-        game = Game()
+        game = Game(average_san=95,activity_level='low',event_frequency="high")
         ghost = Ghost(game)
-        ghost.set_type('Aswang')
+        ghost.set_type('Jinn')
         ghost.wakeup()
-        while game.elapsed_time <= 1800:
+        while game.elapsed_time <= 600:
             ghost.main_loop()
         activate_counts.append(ghost.stats['activity'])
-        dots_counts.append(ghost.stats['dots'])
+        average_san_counts.append(ghost.game.average_san)
+        ability_counts.append(ghost.stats['ability'])
+        ghost_event_counts.append(ghost.stats['ghost_event'])
     import pandas as pd
     activity_df = pd.DataFrame(activate_counts)
-    dots_df = pd.DataFrame(dots_counts)
+    average_san_df = pd.DataFrame(average_san_counts)
+    ability_df = pd.DataFrame(ability_counts)
+    ghost_event_df = pd.DataFrame(ghost_event_counts)
     print("activity:")
     print(activity_df.describe())
-    print("D.O.T.S:")
-    print(dots_df.describe())
+    print('average san:')
+    print(average_san_df.describe())
+    print("ability:")
+    print(ability_df.describe())
+    print('ghost event:')
+    print(ghost_event_df.describe())
 
 if __name__ == "__main__":
     main()
